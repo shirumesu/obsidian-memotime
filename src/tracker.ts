@@ -2,10 +2,6 @@ import { Session, ActiveSession, MemoTimeSettings } from './types';
 
 type FlushCallback = (session: Session, date: string) => Promise<void>;
 
-function todayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function generateId(): string {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -56,7 +52,7 @@ export class Tracker {
 
   async switchFile(newFile: string, timestamp: number, wordCount: number): Promise<void> {
     await this.flushCurrent(timestamp, wordCount);
-    if (newFile) {
+    if (newFile && this.settings.trackingEnabled) {
       this.active = {
         id: generateId(),
         file: newFile,
@@ -84,7 +80,7 @@ export class Tracker {
       mode: this.active.mode,
       word_delta: wordCount - this.active.wordCountAtStart,
     };
-    const date = todayString();
+    const date = new Date(this.active.start * 1000).toISOString().slice(0, 10);
     await this.onFlush(session, date);
     this.active = null;
   }

@@ -98,4 +98,22 @@ describe('Tracker — session lifecycle', () => {
     expect(active?.file).toBe('Notes/a.md');
     expect(active?.accumulatedDuration).toBe(0); // no duration from b.md heartbeat
   });
+
+  it('session date is derived from start time, not flush time', async () => {
+    const tracker = makeTracker();
+    // Simulate a session starting at 23:58 on 2026-03-04 (Unix seconds)
+    const startOfDay = Math.floor(new Date('2026-03-04T00:00:00Z').getTime() / 1000);
+    const sessionStart = startOfDay + (23 * 3600 + 58 * 60); // 23:58 UTC
+    const sessionFlush = startOfDay + (24 * 3600 + 2 * 60);  // 00:02 next day UTC
+    tracker.heartbeat('Notes/a.md', sessionStart, 100);
+    tracker.heartbeat('Notes/a.md', sessionStart + 30, 110); // 30s accumulated
+    await tracker.flushCurrent(sessionFlush, 150);
+    expect(flushedSessions[0].date).toBe('2026-03-04'); // attributed to start date
+  });
+
+  it('switchFile does not create new session when trackingEnabled is false', async () => {
+    const tracker = makeTracker({ trackingEnabled: false });
+    await tracker.switchFile('Notes/b.md', 1000, 500);
+    expect(tracker.getActiveSession()).toBeNull();
+  });
 });
