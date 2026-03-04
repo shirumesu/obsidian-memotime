@@ -17,7 +17,20 @@ export class StorageEngine {
     if (!fs.existsSync(aggDir)) fs.mkdirSync(aggDir, { recursive: true });
   }
 
+  private validateDateString(date: string): void {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error(`Invalid date string: ${date}`);
+    }
+  }
+
+  private validateMonthString(month: string): void {
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      throw new Error(`Invalid month string: ${month}`);
+    }
+  }
+
   private rawPath(date: string): string {
+    this.validateDateString(date);
     return path.join(this.dataPath, 'raw', `${date}.json`);
   }
 
@@ -115,12 +128,23 @@ export class StorageEngine {
   }
 
   async mergeSessions(date: string, remoteSessions: Session[]): Promise<void> {
+    if (remoteSessions.length === 0) return;
+    const log = await this.readDay(date);
     for (const session of remoteSessions) {
-      await this.appendSession(date, session);
+      const existingIdx = log.sessions.findIndex(s => s.id === session.id);
+      if (existingIdx >= 0) {
+        if (session.duration > log.sessions[existingIdx].duration) {
+          log.sessions[existingIdx] = session;
+        }
+      } else {
+        log.sessions.push(session);
+      }
     }
+    await this.writeDay(log);
   }
 
   async readMonth(month: string): Promise<MonthAggregate> {
+    this.validateMonthString(month);
     const aggPath = path.join(this.dataPath, 'agg', `${month}.json`);
     if (!fs.existsSync(aggPath)) {
       return { version: 1, month, files: {}, daily: {} };
@@ -129,6 +153,7 @@ export class StorageEngine {
   }
 
   async writeMonth(agg: MonthAggregate): Promise<void> {
+    this.validateMonthString(agg.month);
     const aggPath = path.join(this.dataPath, 'agg', `${agg.month}.json`);
     fs.writeFileSync(aggPath, JSON.stringify(agg, null, 2), 'utf-8');
   }
@@ -137,8 +162,8 @@ export class StorageEngine {
     const rawDir = path.join(this.dataPath, 'raw');
     if (!fs.existsSync(rawDir)) return;
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - thresholdDays);
-    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setUTCDate(cutoff.getUTCDate() - thresholdDays);
+    cutoff.setUTCHours(0, 0, 0, 0);
     const files = fs.readdirSync(rawDir).filter((f: string) => f.endsWith('.json'));
     for (const f of files) {
       const date = f.replace('.json', '');
