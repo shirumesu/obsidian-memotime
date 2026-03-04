@@ -1,0 +1,157 @@
+/* MemoTime — theme-aware styles using Obsidian CSS variables */
+
+/* ── Status Bar ── */
+.memotime-statusbar {
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+.memotime-statusbar:hover {
+  color: var(--text-normal);
+}
+
+/* ── Dashboard ── */
+.memotime-dashboard {
+  padding: 20px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.memotime-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 8px;
+}
+
+.memotime-tab {
+  background: none;
+  border: none;
+  padding: 6px 14px;
+  cursor: pointer;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-family: var(--font-interface);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.memotime-tab:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.memotime-tab.active {
+  background: var(--background-modifier-active-hover);
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+/* ── Summary Cards ── */
+.memotime-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.memotime-card {
+  background: var(--background-secondary);
+  border-radius: 10px;
+  padding: 16px 20px;
+  text-align: center;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.memotime-card-value {
+  font-size: 1.8em;
+  font-weight: 700;
+  color: var(--text-accent);
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.memotime-card-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Chart Sections ── */
+.memotime-section {
+  margin-bottom: 36px;
+}
+.memotime-section h3 {
+  margin: 0 0 12px 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.memotime-content {
+  max-width: 960px;
+}
+.memotime-no-data {
+  color: var(--text-faint);
+  text-align: center;
+  padding: 40px 0;
+  font-style: italic;
+}
+
+/* ── Heatmap ── */
+.memotime-heatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-content: flex-start;
+}
+.memotime-heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--background-modifier-border);
+  cursor: default;
+  transition: opacity 0.1s;
+}
+.memotime-heatmap-cell:hover {
+  opacity: 0.8;
+}
+.memotime-heatmap-cell[data-level="1"] {
+  background: color-mix(in srgb, var(--color-accent) 25%, var(--background-modifier-border));
+}
+.memotime-heatmap-cell[data-level="2"] {
+  background: color-mix(in srgb, var(--color-accent) 50%, var(--background-modifier-border));
+}
+.memotime-heatmap-cell[data-level="3"] {
+  background: color-mix(in srgb, var(--color-accent) 75%, var(--background-modifier-border));
+}
+.memotime-heatmap-cell[data-level="4"] {
+  background: var(--color-accent);
+}
+
+/* ── File Explorer Badge ── */
+.memotime-file-badge {
+  font-size: 0.78em;
+  color: var(--text-faint);
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Settings ── */
+.memotime-warning {
+  color: var(--color-yellow);
+  font-size: var(--font-ui-small);
+  margin: 4px 0 8px 0;
+  display: block;
+}
+
+/* ── Sync Confirm Modal ── */
+.memotime-modal-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
