@@ -2,12 +2,9 @@ import type { MemoTimeSettings } from './types';
 import type MemoTimePlugin from './main';
 
 export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return s > 0 ? `${h}h ${m}m` : `${h}h ${m}m`;
-  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
 }
 
 interface Metrics {
@@ -58,7 +55,8 @@ export class StatusBarManager {
     const file = this.plugin.app.workspace?.getActiveFile?.();
     const settings = this.plugin.settings;
 
-    const sessionDuration = activeSession?.accumulatedDuration ?? 0;
+    const liveExtra = this.plugin.tracker.getLiveExtra(Date.now() / 1000);
+    const sessionDuration = (activeSession?.accumulatedDuration ?? 0) + liveExtra;
     const todayTotal = await this.plugin.storage.getTodayTotal(today) + sessionDuration;
     const fileTotal = file
       ? await this.plugin.storage.getFileTotal(file.path, today) + sessionDuration

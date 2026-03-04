@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, normalizePath, TFile } from 'obsidian';
+import { Plugin, WorkspaceLeaf, normalizePath, TFile, Notice } from 'obsidian';
 import { MemoTimeSettings, DEFAULT_SETTINGS, Session } from './types';
 import { StorageEngine } from './storage';
 import { Tracker } from './tracker';
@@ -55,6 +55,10 @@ export default class MemoTimePlugin extends Plugin {
     }
 
     this.addRibbonIcon('clock', t('ribbonTooltip'), async () => {
+      if (this.settings.syncMode === 'off') {
+        new Notice(t('sync.syncDisabled'));
+        return;
+      }
       if (this.syncManager) await this.syncManager.syncNow();
     });
 
@@ -78,6 +82,13 @@ export default class MemoTimePlugin extends Plugin {
 
     this.registerInterval(
       window.setInterval(() => { void this.checkTimeout(); }, 30_000)
+    );
+
+    // Tick every second to keep status bar live while a session is active
+    this.registerInterval(
+      window.setInterval(() => {
+        if (this.tracker.getActiveSession()) void this.statusBar.refresh();
+      }, 1000)
     );
 
     if (MemoTimeSettingTab) {

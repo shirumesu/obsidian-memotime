@@ -44,6 +44,7 @@ export const en = {
     confirmMessage: 'Found {count} sessions from other devices. Merge?',
     merge: 'Merge', skip: 'Skip',
     syncComplete: 'MemoTime: Sync complete', syncFailed: 'MemoTime: Sync failed',
+    syncDisabled: 'Sync is disabled. Enable it in Settings.',
   },
 };
 export type Strings = typeof en;

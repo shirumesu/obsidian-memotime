@@ -8,20 +8,20 @@ describe('formatDuration', () => {
   it('formats 45 seconds as "45s"', () => {
     expect(formatDuration(45)).toBe('45s');
   });
-  it('formats exactly 60 seconds as "1m"', () => {
-    expect(formatDuration(60)).toBe('1m');
+  it('formats exactly 60 seconds as "1.0m"', () => {
+    expect(formatDuration(60)).toBe('1.0m');
   });
-  it('formats 90 seconds as "1m 30s"', () => {
-    expect(formatDuration(90)).toBe('1m 30s');
+  it('formats 90 seconds as "1.5m"', () => {
+    expect(formatDuration(90)).toBe('1.5m');
   });
-  it('formats 3600 seconds as "1h 0m"', () => {
-    expect(formatDuration(3600)).toBe('1h 0m');
+  it('formats 3600 seconds as "1.0h"', () => {
+    expect(formatDuration(3600)).toBe('1.0h');
   });
-  it('formats 3661 seconds as "1h 1m"', () => {
-    expect(formatDuration(3661)).toBe('1h 1m');
+  it('formats 5400 seconds as "1.5h"', () => {
+    expect(formatDuration(5400)).toBe('1.5h');
   });
-  it('formats 7384 seconds as "2h 3m"', () => {
-    expect(formatDuration(7384)).toBe('2h 3m');
+  it('formats 7200 seconds as "2.0h"', () => {
+    expect(formatDuration(7200)).toBe('2.0h');
   });
 });
 
@@ -33,7 +33,7 @@ describe('buildStatusBarText', () => {
       { session: 0, file: 0, today: 3600, folder: 0, vault_all: 14400 },
       settings
     );
-    expect(result).toBe('⏱ 1h 0m / 4h 0m');
+    expect(result).toBe('⏱ 1.0h / 4.0h');
   });
 
   it('shows only vault_all when today is disabled', () => {
@@ -45,7 +45,7 @@ describe('buildStatusBarText', () => {
       { session: 0, file: 0, today: 0, folder: 0, vault_all: 14400 },
       settings
     );
-    expect(result).toBe('⏱ 4h 0m');
+    expect(result).toBe('⏱ 4.0h');
   });
 
   it('shows multiple metrics with metric separator', () => {
@@ -59,7 +59,7 @@ describe('buildStatusBarText', () => {
       { session: 0, file: 1800, today: 3600, folder: 0, vault_all: 14400 },
       settings
     );
-    expect(result).toBe('⏱ 30m | 1h 0m >> 4h 0m');
+    expect(result).toBe('⏱ 30.0m | 1.0h >> 4.0h');
   });
 
   it('hides session metric when session duration is 0', () => {
@@ -72,7 +72,7 @@ describe('buildStatusBarText', () => {
       settings
     );
     // session is 0 so it should be hidden; only today shows
-    expect(result).toBe('⏱ 1h 0m');
+    expect(result).toBe('⏱ 1.0h');
   });
 
   it('shows all five metrics when all enabled', () => {
@@ -86,6 +86,6 @@ describe('buildStatusBarText', () => {
       { session: 60, file: 120, today: 180, folder: 240, vault_all: 300 },
       settings
     );
-    expect(result).toBe('⏱ 1m·2m·3m·4m/5m');
+    expect(result).toBe('⏱ 1.0m·2.0m·3.0m·4.0m/5.0m');
   });
 });
