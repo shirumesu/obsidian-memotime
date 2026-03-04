@@ -1,0 +1,28 @@
+{
+  "name": "obsidian-memotime",
+  "version": "0.1.0",
+  "description": "WakaTime-style time tracker for Obsidian notes",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "test": "jest",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": ["obsidian", "time-tracking", "productivity"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "8.28.0",
+    "@typescript-eslint/parser": "8.28.0",
+    "builtin-modules": "3.3.0",
+    "esbuild": "0.25.1",
+    "eslint": "9.23.0",
+    "jest": "^29.0.0",
+    "obsidian": "latest",
+    "ts-jest": "^29.0.0",
+    "tslib": "2.8.1",
+    "typescript": "5.8.2"
+  }
+}
