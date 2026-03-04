@@ -93,6 +93,17 @@ export class Tracker {
     }
   }
 
+  /**
+   * Returns live seconds elapsed since the last heartbeat, capped at timeout.
+   * Used by StatusBar to show a ticking display between heartbeats.
+   */
+  getLiveExtra(now: number): number {
+    if (!this.active) return 0;
+    const gap = now - this.active.lastHeartbeat;
+    if (gap >= this.settings.timeoutThreshold) return 0;
+    return gap;
+  }
+
   updateSettings(settings: MemoTimeSettings): void {
     this.settings = settings;
   }

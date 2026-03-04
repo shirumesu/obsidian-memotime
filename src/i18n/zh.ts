@@ -45,5 +45,6 @@ export const zh: Strings = {
     confirmMessage: '发现来自其他设备的 {count} 条记录，是否合并？',
     merge: '合并', skip: '跳过',
     syncComplete: 'MemoTime：同步完成', syncFailed: 'MemoTime：同步失败',
+    syncDisabled: '同步已关闭，可在设置中开启。',
   },
 };
