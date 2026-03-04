@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+main.js
+main.js.map
+
+# Obsidian dev symlink target (if using symlink workflow)
+# .obsidian/
+
+# AI docs & memory (not for public repo)
+Aidocs/
+
+# Test artifacts
+tests/coverage/
+tests/__snapshots__/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Temp
+*.log
+dist/
