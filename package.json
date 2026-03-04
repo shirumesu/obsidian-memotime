@@ -9,7 +9,11 @@
     "test": "jest",
     "lint": "eslint src --ext .ts"
   },
-  "keywords": ["obsidian", "time-tracking", "productivity"],
+  "keywords": [
+    "obsidian",
+    "time-tracking",
+    "productivity"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -24,5 +28,8 @@
     "ts-jest": "^29.0.0",
     "tslib": "2.8.1",
     "typescript": "5.8.2"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1"
   }
 }
