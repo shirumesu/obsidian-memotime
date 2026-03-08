@@ -1,11 +1,11 @@
 {
   "id": "memotime",
   "name": "MemoTime",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minAppVersion": "1.0.0",
   "description": "Track your active note-editing time with a WakaTime-style dashboard.",
-  "author": "",
+  "author": "MemoTime Contributors",
   "authorUrl": "",
   "fundingUrl": "",
-  "isDesktopOnly": false
+  "isDesktopOnly": true
 }
