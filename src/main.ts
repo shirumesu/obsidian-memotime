@@ -84,10 +84,16 @@ export default class MemoTimePlugin extends Plugin {
       window.setInterval(() => { void this.checkTimeout(); }, 30_000)
     );
 
-    // Tick every second to keep status bar live while a session is active
+    // Every second: refresh status bar and checkpoint active session to disk
+    // so at most ~1 second of data is lost on crash.
     this.registerInterval(
       window.setInterval(() => {
-        if (this.tracker.getActiveSession()) void this.statusBar.refresh();
+        if (this.tracker.getActiveSession()) {
+          void this.statusBar.refresh();
+          const editor = (this.app.workspace as any).activeEditor?.editor;
+          const wordCount = editor ? editor.getValue().split(/\s+/).filter(Boolean).length : 0;
+          void this.tracker.checkpoint(Date.now() / 1000, wordCount);
+        }
       }, 1000)
     );
 
