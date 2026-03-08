@@ -61,23 +61,25 @@ export class StorageEngine {
     await this.writeDay(log);
   }
 
-  async getTodayTotal(date: string): Promise<number> {
-    const log = await this.readDay(date);
-    return log.sessions.reduce((sum, s) => sum + s.duration, 0);
-  }
-
-  async getFileTotal(file: string, date: string): Promise<number> {
+  async getTodayTotal(date: string, excludeId?: string): Promise<number> {
     const log = await this.readDay(date);
     return log.sessions
-      .filter(s => s.file === file)
+      .filter(s => s.id !== excludeId)
       .reduce((sum, s) => sum + s.duration, 0);
   }
 
-  async getFolderTotal(folderPath: string, date: string): Promise<number> {
+  async getFileTotal(file: string, date: string, excludeId?: string): Promise<number> {
+    const log = await this.readDay(date);
+    return log.sessions
+      .filter(s => s.file === file && s.id !== excludeId)
+      .reduce((sum, s) => sum + s.duration, 0);
+  }
+
+  async getFolderTotal(folderPath: string, date: string, excludeId?: string): Promise<number> {
     const log = await this.readDay(date);
     const prefix = folderPath.endsWith('/') ? folderPath : folderPath + '/';
     return log.sessions
-      .filter(s => s.file.startsWith(prefix) || s.file === folderPath)
+      .filter(s => (s.file.startsWith(prefix) || s.file === folderPath) && s.id !== excludeId)
       .reduce((sum, s) => sum + s.duration, 0);
   }
 
@@ -103,14 +105,14 @@ export class StorageEngine {
     return total;
   }
 
-  async getVaultTotalAllTime(): Promise<number> {
+  async getVaultTotalAllTime(excludeId?: string): Promise<number> {
     let total = 0;
     const rawDir = path.join(this.dataPath, 'raw');
     if (fs.existsSync(rawDir)) {
       const files = fs.readdirSync(rawDir).filter((f: string) => f.endsWith('.json'));
       for (const f of files) {
         const date = f.replace('.json', '');
-        total += await this.getTodayTotal(date);
+        total += await this.getTodayTotal(date, excludeId);
       }
     }
     const aggDir = path.join(this.dataPath, 'agg');
