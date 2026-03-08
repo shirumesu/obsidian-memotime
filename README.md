@@ -4,6 +4,7 @@ Track active note-editing time in Obsidian with a WakaTime-style dashboard.
 
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/community-plugin-stats.json&query=%24%5B%22memotime%22%5D.downloads&label=downloads&style=flat-square)](https://obsidian.md/plugins?id=memotime)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Releases](https://img.shields.io/github/v/release/shirumesu/obsidian-memotime?style=flat-square&label=release)](https://github.com/shirumesu/obsidian-memotime/releases)
 
 English | [中文](docs/README.zh-CN.md)
 
@@ -34,7 +35,7 @@ English | [中文](docs/README.zh-CN.md)
 
 ### Manual Install
 
-1. Download `main.js`, `manifest.json`, `styles.css` from your release page.
+1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/shirumesu/obsidian-memotime/releases/latest).
 2. Copy them to `{vault}/.obsidian/plugins/memotime/`.
 3. Enable `MemoTime` in Community Plugins.
 
@@ -42,7 +43,7 @@ English | [中文](docs/README.zh-CN.md)
 
 1. Install [BRAT](https://obsidian.md/plugins?id=obsidian42-brat).
 2. Run `BRAT: Add a beta plugin`.
-3. Enter your repository slug: `<your-github-username>/obsidian-memotime`.
+3. Enter your repository slug: `shirumesu/obsidian-memotime`.
 
 ## Usage
 

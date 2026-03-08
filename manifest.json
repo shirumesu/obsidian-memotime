@@ -5,7 +5,7 @@
   "minAppVersion": "1.0.0",
   "description": "Track your active note-editing time with a WakaTime-style dashboard.",
   "author": "MemoTime Contributors",
-  "authorUrl": "",
+  "authorUrl": "https://github.com/shirumesu",
   "fundingUrl": "",
   "isDesktopOnly": true
 }
