@@ -1,11 +1,12 @@
 {
   "name": "obsidian-memotime",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "WakaTime-style time tracker for Obsidian notes",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "plugin": "npm run build && copy main.js \"D:\\obisidian\\日常\\.obsidian\\plugins\\obsidian-memotime\\\" && copy manifest.json \"D:\\obisidian\\日常\\.obsidian\\plugins\\obsidian-memotime\\\" && copy styles.css \"D:\\obisidian\\日常\\.obsidian\\plugins\\obsidian-memotime\\\"",
     "test": "jest",
     "lint": "eslint src --ext .ts"
   },
@@ -14,7 +15,7 @@
     "time-tracking",
     "productivity"
   ],
-  "author": "",
+  "author": "MemoTime Contributors",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.0.0",
