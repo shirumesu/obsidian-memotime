@@ -60,19 +60,20 @@ export class StatusBarManager {
     // Exclude the active session from disk reads to avoid double-counting:
     // checkpoint() already wrote it to disk, so we add in-memory sessionDuration separately.
     const activeId = activeSession?.id;
-    const todayTotal = await this.plugin.storage.getTodayTotal(today, activeId) + sessionDuration;
     const activeFile = activeSession?.file;
-    const fileTotal = file
-      ? await this.plugin.storage.getFileTotal(file.path, today, activeId) +
-        (activeFile === file.path ? sessionDuration : 0)
-      : 0;
     const folderPath = file?.path
       ? (file.path.includes('/') ? file.path.split('/').slice(0, -1).join('/') : '')
       : null;
-    const folderTotal = folderPath !== null
-      ? await this.plugin.storage.getFolderTotal(folderPath, today, activeId)
-      : 0;
-    const vaultAll = await this.plugin.storage.getVaultTotalAllTime(activeId) + sessionDuration;
+    const totals = await this.plugin.storage.getStatusBarTotals(
+      today,
+      file?.path ?? null,
+      folderPath,
+      activeId
+    );
+    const todayTotal = totals.today + sessionDuration;
+    const fileTotal = (totals.file ?? 0) + (activeFile === file?.path ? sessionDuration : 0);
+    const folderTotal = totals.folder ?? 0;
+    const vaultAll = totals.vault_all + sessionDuration;
 
     const text = buildStatusBarText(
       { session: sessionDuration, file: fileTotal, today: todayTotal, folder: folderTotal, vault_all: vaultAll },

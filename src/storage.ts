@@ -324,6 +324,22 @@ export class StorageEngine {
     return this.folderAllTimeTotals.get(folderPath) ?? 0;
   }
 
+  async getStatusBarTotals(
+    date: string,
+    filePath: string | null,
+    folderPath: string | null,
+    excludeId?: string
+  ): Promise<{ today: number; file: number; folder: number; vault_all: number }> {
+    await this.ready();
+
+    const today = await this.getTodayTotal(date, excludeId);
+    const file = filePath ? await this.getFileTotal(filePath, date, excludeId) : 0;
+    const folder = folderPath ? await this.getFolderTotal(folderPath, date, excludeId) : 0;
+    const vault_all = await this.getVaultTotalAllTime(excludeId);
+
+    return { today, file, folder, vault_all };
+  }
+
   async getVaultTotalAllTime(excludeId?: string): Promise<number> {
     await this.ready();
     const excluded = this.findExcludedSession(excludeId);
