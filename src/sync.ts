@@ -5,6 +5,7 @@ import type { RawDayLog, Session } from './types';
 import { t } from './i18n';
 import * as fs from 'fs';
 import * as path from 'path';
+import { formatLocalDateKey, formatLocalTimeKey } from './date';
 
 export function mergeDayLogs(local: RawDayLog, remote: RawDayLog): RawDayLog {
   const map = new Map<string, Session>();
@@ -18,8 +19,27 @@ export function mergeDayLogs(local: RawDayLog, remote: RawDayLog): RawDayLog {
   return { ...local, sessions: Array.from(map.values()) };
 }
 
+function deduplicateDayLog(log: RawDayLog): { log: RawDayLog; removed: number } {
+  const deduped: RawDayLog = { version: log.version, date: log.date, sessions: [] };
+  for (const session of log.sessions) {
+    const existingIdx = deduped.sessions.findIndex((entry) => entry.id === session.id);
+    if (existingIdx >= 0) {
+      if (session.duration > deduped.sessions[existingIdx].duration) {
+        deduped.sessions[existingIdx] = session;
+      }
+    } else {
+      deduped.sessions.push(session);
+    }
+  }
+  return {
+    log: deduped,
+    removed: log.sessions.length - deduped.sessions.length,
+  };
+}
+
 export class SyncManager {
   private plugin: MemoTimePlugin;
+  private lastScheduledSyncDate: string | null = null;
 
   constructor(plugin: MemoTimePlugin) {
     this.plugin = plugin;
@@ -28,9 +48,13 @@ export class SyncManager {
   async syncNow(options: { silent?: boolean } = {}): Promise<void> {
     if (this.plugin.settings.syncMode !== 'file') return;
     try {
-      const changed = await this.deduplicateLocalData();
-      if (changed > 0 && this.plugin.settings.syncConfirm && !options.silent) {
-        await this.showConfirmModal(changed);
+      const duplicates = await this.countLocalDuplicates();
+      if (duplicates > 0 && this.plugin.settings.syncConfirm && !options.silent) {
+        const shouldMerge = await this.showConfirmModal(duplicates);
+        if (!shouldMerge) return;
+      }
+      if (duplicates > 0) {
+        await this.deduplicateLocalData();
       }
       if (!options.silent) new Notice(t('sync.syncComplete'));
     } catch (e) {
@@ -39,8 +63,37 @@ export class SyncManager {
     }
   }
 
+  async runScheduledSyncIfNeeded(now: Date = new Date()): Promise<void> {
+    if (this.plugin.settings.syncMode !== 'file' || !this.plugin.settings.syncScheduled) return;
+
+    const dateKey = formatLocalDateKey(now);
+    if (this.lastScheduledSyncDate === dateKey) return;
+    if (formatLocalTimeKey(now) < this.plugin.settings.syncScheduledTime) return;
+
+    await this.syncNow({ silent: true });
+    this.lastScheduledSyncDate = dateKey;
+  }
+
+  private getDataPath(): string {
+    return this.plugin.storage.getDataPath?.() ?? (this.plugin.storage as any).dataPath;
+  }
+
+  private async countLocalDuplicates(): Promise<number> {
+    const dataPath = this.getDataPath();
+    const rawDir = path.join(dataPath, 'raw');
+    if (!fs.existsSync(rawDir)) return 0;
+    let duplicates = 0;
+    const files = fs.readdirSync(rawDir).filter((f: string) => f.endsWith('.json'));
+    for (const file of files) {
+      const date = file.replace('.json', '');
+      const log = await this.plugin.storage.readDay(date);
+      duplicates += deduplicateDayLog(log).removed;
+    }
+    return duplicates;
+  }
+
   private async deduplicateLocalData(): Promise<number> {
-    const dataPath = (this.plugin.storage as any).dataPath as string;
+    const dataPath = this.getDataPath();
     const rawDir = path.join(dataPath, 'raw');
     if (!fs.existsSync(rawDir)) return 0;
     let changed = 0;
@@ -48,25 +101,16 @@ export class SyncManager {
     for (const f of files) {
       const date = f.replace('.json', '');
       const log = await this.plugin.storage.readDay(date);
-      const before = log.sessions.length;
-      const deduped: RawDayLog = { version: 1, date, sessions: [] };
-      for (const s of log.sessions) {
-        const idx = deduped.sessions.findIndex(x => x.id === s.id);
-        if (idx >= 0) {
-          if (s.duration > deduped.sessions[idx].duration) deduped.sessions[idx] = s;
-        } else {
-          deduped.sessions.push(s);
-        }
-      }
-      if (deduped.sessions.length !== before) {
-        await this.plugin.storage.writeDay(deduped);
-        changed += before - deduped.sessions.length;
+      const result = deduplicateDayLog(log);
+      if (result.removed > 0) {
+        await this.plugin.storage.writeDay(result.log);
+        changed += result.removed;
       }
     }
     return changed;
   }
 
-  private showConfirmModal(count: number): Promise<void> {
+  private showConfirmModal(count: number): Promise<boolean> {
     return new Promise((resolve) => {
       const modal = new SyncConfirmModal(this.plugin.app, count, resolve);
       modal.open();
@@ -74,7 +118,7 @@ export class SyncManager {
   }
 
   async exportData(): Promise<void> {
-    const dataPath = (this.plugin.storage as any).dataPath as string;
+    const dataPath = this.getDataPath();
     const allData: Record<string, unknown> = {};
     const rawDir = path.join(dataPath, 'raw');
     const aggDir = path.join(dataPath, 'agg');
@@ -93,7 +137,7 @@ export class SyncManager {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `memotime-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `memotime-export-${formatLocalDateKey()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -101,12 +145,19 @@ export class SyncManager {
 
 class SyncConfirmModal extends Modal {
   private count: number;
-  private resolve: () => void;
+  private resolve: (shouldMerge: boolean) => void;
+  private settled = false;
 
-  constructor(app: App, count: number, resolve: () => void) {
+  constructor(app: App, count: number, resolve: (shouldMerge: boolean) => void) {
     super(app);
     this.count = count;
     this.resolve = resolve;
+  }
+
+  private finish(shouldMerge: boolean): void {
+    if (this.settled) return;
+    this.settled = true;
+    this.resolve(shouldMerge);
   }
 
   onOpen(): void {
@@ -117,13 +168,13 @@ class SyncConfirmModal extends Modal {
     });
     const btnRow = contentEl.createDiv({ cls: 'memotime-modal-buttons' });
     btnRow.createEl('button', { text: t('sync.merge'), cls: 'mod-cta' })
-      .addEventListener('click', () => { this.close(); this.resolve(); });
+      .addEventListener('click', () => { this.finish(true); this.close(); });
     btnRow.createEl('button', { text: t('sync.skip') })
-      .addEventListener('click', () => { this.close(); this.resolve(); });
+      .addEventListener('click', () => { this.finish(false); this.close(); });
   }
 
   onClose(): void {
     this.contentEl.empty();
-    this.resolve();
+    this.finish(false);
   }
 }

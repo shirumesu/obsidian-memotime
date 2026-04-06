@@ -55,7 +55,7 @@ English | [中文](docs/README.zh-CN.md)
 
 | Setting | Default | Description |
 |---|---|---|
-| Activity mode | Typing | Typing is fully supported; cursor mode is planned |
+| Activity mode | Typing | Typing tracks text edits; cursor mode tracks cursor and selection movement in the focused editor |
 | Inactivity timeout | 2m | Session ends after this idle period |
 | Status bar metrics | Today + Vault | Choose visible metrics |
 | Sync mode | Off | Off / File sync / API (planned) |

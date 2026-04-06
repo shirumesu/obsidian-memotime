@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { promises as fsp } from 'fs';
 import * as path from 'path';
 import { Session, RawDayLog, MonthAggregate } from './types';
+import { formatLocalDateKey, parseLocalDateKey } from './date';
 
 type IndexedSession = {
   date: string;
@@ -45,6 +46,7 @@ export class StorageEngine {
   private dayTotals = new Map<string, number>();
   private fileDayTotals = new Map<string, Map<string, number>>();
   private folderDayTotals = new Map<string, Map<string, number>>();
+  private aggregateDayTotals = new Map<string, number>();
 
   private fileAllTimeTotals = new Map<string, number>();
   private folderAllTimeTotals = new Map<string, number>();
@@ -54,6 +56,10 @@ export class StorageEngine {
     this.dataPath = dataPath;
     this.ensureDirectories();
     this.readyPromise = this.initializeIndexes();
+  }
+
+  getDataPath(): string {
+    return this.dataPath;
   }
 
   private ensureDirectories(): void {
@@ -224,8 +230,10 @@ export class StorageEngine {
       }
     }
 
-    for (const stats of Object.values(agg.daily)) {
-      this.vaultAllTimeTotal += direction * stats.duration;
+    for (const [date, stats] of Object.entries(agg.daily)) {
+      const delta = direction * stats.duration;
+      this.adjustTotal(this.aggregateDayTotals, date, delta);
+      this.vaultAllTimeTotal += delta;
     }
   }
 
@@ -292,7 +300,7 @@ export class StorageEngine {
 
   async getTodayTotal(date: string, excludeId?: string): Promise<number> {
     await this.ready();
-    const total = this.dayTotals.get(date) ?? 0;
+    const total = (this.dayTotals.get(date) ?? 0) + (this.aggregateDayTotals.get(date) ?? 0);
     const excluded = this.findExcludedSession(excludeId);
     if (!excluded || excluded.date !== date) return total;
     return total - excluded.session.duration;
@@ -388,13 +396,12 @@ export class StorageEngine {
 
   async compressOldDays(thresholdDays: number): Promise<void> {
     await this.enqueueMutation(async () => {
-      const cutoff = new Date();
-      cutoff.setUTCDate(cutoff.getUTCDate() - thresholdDays);
-      cutoff.setUTCHours(0, 0, 0, 0);
+      const cutoff = parseLocalDateKey(formatLocalDateKey());
+      cutoff.setDate(cutoff.getDate() - thresholdDays);
 
       const dates = [...this.rawDayCache.keys()].sort();
       for (const date of dates) {
-        const fileDate = new Date(`${date}T00:00:00Z`);
+        const fileDate = parseLocalDateKey(date);
         if (fileDate >= cutoff) continue;
 
         const log = cloneRawDayLog(this.rawDayCache.get(date) ?? { version: 1, date, sessions: [] });

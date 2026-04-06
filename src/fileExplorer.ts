@@ -1,6 +1,7 @@
 import { TFolder, TFile } from 'obsidian';
 import type MemoTimePlugin from './main';
 import { formatDuration } from './statusbar';
+import { formatLocalDateKey, shiftLocalDateKey } from './date';
 
 export class FileExplorerDecorator {
   private plugin: MemoTimePlugin;
@@ -56,20 +57,18 @@ export class FileExplorerDecorator {
 
   private async getFileWeek(filePath: string): Promise<number> {
     let total = 0;
+    const today = formatLocalDateKey();
     for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      total += await this.plugin.storage.getFileTotal(filePath, d.toISOString().slice(0, 10));
+      total += await this.plugin.storage.getFileTotal(filePath, shiftLocalDateKey(today, -i));
     }
     return total;
   }
 
   private async getFolderWeek(folderPath: string): Promise<number> {
     let total = 0;
+    const today = formatLocalDateKey();
     for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      total += await this.plugin.storage.getFolderTotal(folderPath, d.toISOString().slice(0, 10));
+      total += await this.plugin.storage.getFolderTotal(folderPath, shiftLocalDateKey(today, -i));
     }
     return total;
   }
@@ -98,7 +97,7 @@ export class FileExplorerDecorator {
     const items = this.getExplorerItems();
     if (!items) return;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalDateKey();
     for (const filePath of filePaths) {
       const item = items[filePath];
       const el = (item as any)?.selfEl as HTMLElement | undefined;

@@ -4,6 +4,7 @@ import { StorageEngine } from './storage';
 import { Tracker } from './tracker';
 import { setLanguage, t } from './i18n';
 import { StatusBarManager } from './statusbar';
+import { CursorActivityMonitor } from './cursorActivity';
 
 // Forward declarations for modules implemented in later tasks
 // These will be replaced when those modules are implemented
@@ -26,6 +27,7 @@ export default class MemoTimePlugin extends Plugin {
   statusBar: StatusBarManager;
   decorator: any;
   syncManager: any;
+  cursorActivity: CursorActivityMonitor = new CursorActivityMonitor();
 
   async onload() {
     await this.loadSettings();
@@ -88,6 +90,9 @@ export default class MemoTimePlugin extends Plugin {
     // so at most ~1 second of data is lost on crash.
     this.registerInterval(
       window.setInterval(() => {
+        if (this.settings.activityMode === 'cursor') {
+          this.pollCursorActivity();
+        }
         if (this.tracker.getActiveSession()) {
           void this.statusBar.refresh();
           const editor = (this.app.workspace as any).activeEditor?.editor;
@@ -95,6 +100,12 @@ export default class MemoTimePlugin extends Plugin {
           void this.tracker.checkpoint(Date.now() / 1000, wordCount);
         }
       }, 1000)
+    );
+
+    this.registerInterval(
+      window.setInterval(() => {
+        void this.syncManager?.runScheduledSyncIfNeeded();
+      }, 60_000)
     );
 
     if (MemoTimeSettingTab) {
@@ -122,6 +133,7 @@ export default class MemoTimePlugin extends Plugin {
     const wordCount = editor ? editor.getValue().split(/\s+/).filter(Boolean).length : 0;
     const filePath = file?.path ?? '';
     await this.tracker.switchFile(filePath, Date.now() / 1000, wordCount);
+    this.cursorActivity.reset();
     await this.statusBar.refresh();
     if (this.decorator?.refreshForFileChange) {
       await this.decorator.refreshForFileChange(previousFilePath, filePath);
@@ -134,6 +146,19 @@ export default class MemoTimePlugin extends Plugin {
     if (this.settings.activityMode !== 'typing') return;
     const file = this.app.workspace.getActiveFile();
     if (!file) return;
+    const wordCount = editor.getValue().split(/\s+/).filter(Boolean).length;
+    this.tracker.heartbeat(file.path, Date.now() / 1000, wordCount);
+    void this.statusBar.refresh();
+  }
+
+  private pollCursorActivity(): void {
+    if (!this.settings.trackingEnabled) return;
+
+    const editor = (this.app.workspace as any).activeEditor?.editor;
+    const file = this.app.workspace.getActiveFile();
+    if (!editor || !file) return;
+    if (!this.cursorActivity.observe(file.path, editor)) return;
+
     const wordCount = editor.getValue().split(/\s+/).filter(Boolean).length;
     this.tracker.heartbeat(file.path, Date.now() / 1000, wordCount);
     void this.statusBar.refresh();
@@ -162,9 +187,34 @@ export default class MemoTimePlugin extends Plugin {
   }
 
   async saveSettings(): Promise<void> {
+    const previousDataPath = this.storage?.getDataPath?.() ?? (this.storage as any)?.dataPath;
     await this.saveData(this.settings);
     this.tracker?.updateSettings(this.settings);
-    void this.statusBar?.refresh();
-    this.decorator?.refresh?.();
+    this.cursorActivity.reset();
+    await this.rebindStorageIfNeeded(previousDataPath);
+    await this.statusBar?.refresh();
+    await this.decorator?.refresh?.();
+  }
+
+  private async rebindStorageIfNeeded(previousDataPath?: string): Promise<void> {
+    const vaultPath = (this.app.vault.adapter as any).basePath ?? '';
+    const desiredDataPath = normalizePath(vaultPath + '/' + this.settings.dataPath);
+    if (!desiredDataPath || desiredDataPath === previousDataPath) return;
+
+    const editor = (this.app.workspace as any)?.activeEditor?.editor;
+    const wordCount = editor ? editor.getValue().split(/\s+/).filter(Boolean).length : 0;
+    const now = Date.now() / 1000;
+    const activeFilePath = this.tracker?.getActiveSession()?.file ?? '';
+    const hadActiveSession = Boolean(this.tracker?.getActiveSession());
+
+    if (hadActiveSession) {
+      await this.tracker.flushCurrent(now, wordCount);
+    }
+
+    this.storage = new StorageEngine(desiredDataPath);
+
+    if (hadActiveSession && activeFilePath && this.settings.trackingEnabled) {
+      await this.tracker.switchFile(activeFilePath, now, wordCount);
+    }
   }
 }

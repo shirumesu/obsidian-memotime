@@ -1,6 +1,6 @@
 {
   "name": "obsidian-memotime",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "WakaTime-style time tracker for Obsidian notes",
   "main": "main.js",
   "scripts": {

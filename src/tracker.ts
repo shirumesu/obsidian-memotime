@@ -1,4 +1,5 @@
 import { Session, ActiveSession, MemoTimeSettings } from './types';
+import { dateKeyFromTimestampSeconds } from './date';
 
 type FlushCallback = (session: Session, date: string) => Promise<void>;
 
@@ -103,7 +104,7 @@ export class Tracker {
       mode: this.active.mode,
       word_delta: wordCount - this.active.wordCountAtStart,
     };
-    const date = new Date(this.active.start * 1000).toISOString().slice(0, 10);
+    const date = dateKeyFromTimestampSeconds(this.active.start);
     await this.onFlush(session, date);
     // Do NOT clear this.active — session continues
   }

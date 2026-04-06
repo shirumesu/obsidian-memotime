@@ -1,5 +1,6 @@
 import type { MemoTimeSettings } from './types';
 import type MemoTimePlugin from './main';
+import { formatLocalDateKey } from './date';
 
 export function formatDuration(seconds: number): string {
   if (seconds < 60) return `${Math.round(seconds)}s`;
@@ -32,6 +33,12 @@ export function buildStatusBarText(metrics: Metrics, settings: MemoTimeSettings)
   return `⏱ ${left}`;
 }
 
+function fileBelongsToFolder(filePath: string | undefined, folderPath: string | null): boolean {
+  if (!filePath || folderPath === null) return false;
+  if (folderPath === '') return !filePath.includes('/');
+  return filePath === folderPath || filePath.startsWith(`${folderPath}/`);
+}
+
 export class StatusBarManager {
   private el: HTMLElement | null = null;
   private plugin: MemoTimePlugin;
@@ -50,7 +57,7 @@ export class StatusBarManager {
 
   async refresh(): Promise<void> {
     if (!this.el) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalDateKey();
     const activeSession = this.plugin.tracker.getActiveSession();
     const file = this.plugin.app.workspace?.getActiveFile?.();
     const settings = this.plugin.settings;
@@ -72,7 +79,7 @@ export class StatusBarManager {
     );
     const todayTotal = totals.today + sessionDuration;
     const fileTotal = (totals.file ?? 0) + (activeFile === file?.path ? sessionDuration : 0);
-    const folderTotal = totals.folder ?? 0;
+    const folderTotal = (totals.folder ?? 0) + (fileBelongsToFolder(activeFile, folderPath) ? sessionDuration : 0);
     const vaultAll = totals.vault_all + sessionDuration;
 
     const text = buildStatusBarText(

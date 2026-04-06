@@ -3,6 +3,7 @@ import { Chart, registerables } from 'chart.js';
 import type MemoTimePlugin from './main';
 import { t } from './i18n';
 import { formatDuration } from './statusbar';
+import { formatLocalDateKey, shiftLocalDateKey } from './date';
 
 Chart.register(...registerables);
 
@@ -70,7 +71,7 @@ export class DashboardView extends ItemView {
   }
 
   private async renderToday(container: HTMLElement): Promise<void> {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalDateKey();
     const log = await this.plugin.storage.readDay(today);
     const totalSeconds = log.sessions.reduce((s, x) => s + x.duration, 0);
     const wordDelta = log.sessions.reduce((s, x) => s + x.word_delta, 0);
@@ -120,10 +121,9 @@ export class DashboardView extends ItemView {
   private async renderWeek(container: HTMLElement): Promise<void> {
     const days: string[] = [];
     const durations: number[] = [];
+    const today = formatLocalDateKey();
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      const date = d.toISOString().slice(0, 10);
+      const date = shiftLocalDateKey(today, -i);
       days.push(date.slice(5));
       durations.push(await this.plugin.storage.getTodayTotal(date));
     }
@@ -138,9 +138,7 @@ export class DashboardView extends ItemView {
 
     const fileMap = new Map<string, number>();
     for (let i = 0; i < 7; i++) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      const log = await this.plugin.storage.readDay(d.toISOString().slice(0, 10));
+      const log = await this.plugin.storage.readDay(shiftLocalDateKey(today, -i));
       for (const s of log.sessions) {
         fileMap.set(s.file, (fileMap.get(s.file) ?? 0) + s.duration);
       }
@@ -159,10 +157,9 @@ export class DashboardView extends ItemView {
   private async renderHistory(container: HTMLElement): Promise<void> {
     const days: string[] = [];
     const durations: number[] = [];
+    const today = formatLocalDateKey();
     for (let i = 29; i >= 0; i--) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      const date = d.toISOString().slice(0, 10);
+      const date = shiftLocalDateKey(today, -i);
       const log = await this.plugin.storage.readDay(date);
       days.push(date.slice(5));
       durations.push(log.sessions.reduce((s, x) => s + x.duration, 0));
@@ -176,10 +173,9 @@ export class DashboardView extends ItemView {
     section.createEl('h3', { text: t('dashboard.activityHeatmap') });
     const grid = section.createDiv({ cls: 'memotime-heatmap' });
     const dayMap = new Map<string, number>();
+    const today = formatLocalDateKey();
     for (let i = 364; i >= 0; i--) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      const date = d.toISOString().slice(0, 10);
+      const date = shiftLocalDateKey(today, -i);
       dayMap.set(date, await this.plugin.storage.getTodayTotal(date));
     }
     const max = Math.max(...dayMap.values(), 1);
@@ -222,10 +218,9 @@ export class DashboardView extends ItemView {
 
   private async calcStreak(): Promise<number> {
     let streak = 0;
+    const today = formatLocalDateKey();
     for (let i = 0; i < 365; i++) {
-      const d = new Date();
-      d.setUTCDate(d.getUTCDate() - i);
-      const total = await this.plugin.storage.getTodayTotal(d.toISOString().slice(0, 10));
+      const total = await this.plugin.storage.getTodayTotal(shiftLocalDateKey(today, -i));
       if (total > 0) streak++;
       else if (i > 0) break;
     }
