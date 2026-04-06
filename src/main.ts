@@ -116,13 +116,18 @@ export default class MemoTimePlugin extends Plugin {
   }
 
   private async onLeafChange(): Promise<void> {
+    const previousFilePath = this.tracker.getActiveSession()?.file ?? '';
     const file = this.app.workspace.getActiveFile();
     const editor = (this.app.workspace as any).activeEditor?.editor;
     const wordCount = editor ? editor.getValue().split(/\s+/).filter(Boolean).length : 0;
     const filePath = file?.path ?? '';
     await this.tracker.switchFile(filePath, Date.now() / 1000, wordCount);
     await this.statusBar.refresh();
-    this.decorator?.refresh?.();
+    if (this.decorator?.refreshForFileChange) {
+      await this.decorator.refreshForFileChange(previousFilePath, filePath);
+      return;
+    }
+    await this.decorator?.refresh?.();
   }
 
   private onEditorChange(editor: any): void {

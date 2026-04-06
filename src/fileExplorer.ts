@@ -10,27 +10,30 @@ export class FileExplorerDecorator {
   }
 
   async refresh(): Promise<void> {
+    const items = this.getExplorerItems();
+    if (!items) return;
+    await this.refreshPaths(Object.keys(items));
+  }
+
+  async refreshForFileChange(previousFilePath: string, nextFilePath: string): Promise<void> {
     if (!this.plugin.settings.showFileExplorerLabels) {
       this.clearAll();
       return;
     }
-    const explorer = this.plugin.app.workspace.getLeavesOfType('file-explorer')[0];
-    if (!explorer) return;
-    const items: Record<string, any> = (explorer.view as any)?.fileItems ?? {};
-    const today = new Date().toISOString().slice(0, 10);
 
-    for (const [filePath, item] of Object.entries(items)) {
-      const el = (item as any).selfEl as HTMLElement | undefined;
-      if (!el) continue;
-      this.clearDecoration(el);
-      const duration = await this.getDuration(filePath, today);
-      if (duration <= 0) continue;
-      const badge = el.createEl('span', {
-        cls: 'memotime-file-badge',
-        text: formatDuration(duration),
-      });
-      badge.setAttr('aria-hidden', 'true');
+    const items = this.getExplorerItems();
+    if (!items) return;
+
+    const targets = new Set<string>();
+    for (const filePath of [previousFilePath, nextFilePath]) {
+      if (!filePath) continue;
+      targets.add(filePath);
+      for (const folderPath of this.getAncestorFolders(filePath)) {
+        targets.add(folderPath);
+      }
     }
+
+    await this.refreshPaths([...targets]);
   }
 
   private async getDuration(filePath: string, today: string): Promise<number> {
@@ -40,7 +43,7 @@ export class FileExplorerDecorator {
 
     if (abstractFile instanceof TFolder) {
       if (range === 'today') return this.plugin.storage.getFolderTotal(filePath, today);
-      if (range === 'all') return this.getFolderAllTime(abstractFile);
+      if (range === 'all') return this.plugin.storage.getFolderTotalAllTime(filePath);
       return this.getFolderWeek(filePath);
     }
     if (abstractFile instanceof TFile) {
@@ -71,23 +74,55 @@ export class FileExplorerDecorator {
     return total;
   }
 
-  private async getFolderAllTime(folder: TFolder): Promise<number> {
-    let total = 0;
-    for (const child of folder.children) {
-      if (child instanceof TFile) {
-        total += await this.plugin.storage.getFileTotalAllTime(child.path);
-      } else if (child instanceof TFolder) {
-        total += await this.getFolderAllTime(child);
-      }
+  private getExplorerItems(): Record<string, any> | null {
+    if (!this.plugin.settings.showFileExplorerLabels) {
+      this.clearAll();
+      return null;
     }
-    return total;
+
+    const explorer = this.plugin.app.workspace.getLeavesOfType('file-explorer')[0];
+    if (!explorer) return null;
+    return (explorer.view as any)?.fileItems ?? {};
   }
 
-  private clearDecoration(el: HTMLElement): void {
-    el.querySelectorAll('.memotime-file-badge').forEach(b => b.remove());
+  private getAncestorFolders(filePath: string): string[] {
+    const segments = filePath.split('/');
+    const folders: string[] = [];
+    for (let i = 1; i < segments.length; i++) {
+      folders.push(segments.slice(0, i).join('/'));
+    }
+    return folders;
+  }
+
+  private async refreshPaths(filePaths: Iterable<string>): Promise<void> {
+    const items = this.getExplorerItems();
+    if (!items) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    for (const filePath of filePaths) {
+      const item = items[filePath];
+      const el = (item as any)?.selfEl as HTMLElement | undefined;
+      if (!el) continue;
+      this.clearDecoration(el);
+      const duration = await this.getDuration(filePath, today);
+      if (duration <= 0) continue;
+      const badge = el.createEl('span', {
+        cls: 'memotime-file-badge',
+        text: formatDuration(duration),
+      });
+      badge.setAttr('aria-hidden', 'true');
+    }
   }
 
   clearAll(): void {
+    if (typeof document === 'undefined') return;
     document.querySelectorAll('.memotime-file-badge').forEach(b => b.remove());
+  }
+
+  private clearDecoration(el: HTMLElement): void {
+    const badges = el.querySelectorAll('.memotime-file-badge');
+    for (const badge of Array.from(badges)) {
+      (badge as HTMLElement).remove?.();
+    }
   }
 }
