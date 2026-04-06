@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
-    "plugin": "npm run build && copy main.js \"D:\\obisidian\\日常\\.obsidian\\plugins\\obsidian-memotime\\\" && copy manifest.json \"D:\\obisidian\\日常\\.obsidian\\plugins\\obsidian-memotime\\\" && copy styles.css \"D:\\obisidian\\日常\\.obsidian\\plugins\\obsidian-memotime\\\"",
     "test": "jest",
     "lint": "eslint src --ext .ts"
   },

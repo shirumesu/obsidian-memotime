@@ -32,3 +32,6 @@ Thumbs.db
 # Temp
 *.log
 dist/
+
+# Local scripts
+buildlocal.ps1
