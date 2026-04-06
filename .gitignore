@@ -12,6 +12,7 @@ main.js.map
 Aidocs/
 
 # Test artifacts
+tests/
 tests/coverage/
 tests/__snapshots__/
 
