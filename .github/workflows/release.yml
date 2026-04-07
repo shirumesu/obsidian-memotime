@@ -1,0 +1,74 @@
+name: Release Plugin
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version to validate against repository metadata
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve release metadata
+        id: release_meta
+        env:
+          RELEASE_VERSION_INPUT: ${{ github.event.inputs.version || '' }}
+        run: node scripts/release-meta.cjs
+
+      - name: Explain release skip
+        if: steps.release_meta.outputs.should_release != 'true'
+        run: echo "${{ steps.release_meta.outputs.release_reason }}"
+
+      - name: Install dependencies
+        if: steps.release_meta.outputs.should_release == 'true'
+        run: npm ci
+
+      - name: Build plugin
+        if: steps.release_meta.outputs.should_release == 'true'
+        run: npm run build
+
+      - name: Create release archive
+        if: steps.release_meta.outputs.should_release == 'true'
+        env:
+          PACKAGE_DIR: ${{ steps.release_meta.outputs.package_dir }}
+          ZIP_NAME: ${{ steps.release_meta.outputs.zip_name }}
+        run: |
+          mkdir -p "release/${PACKAGE_DIR}"
+          cp main.js manifest.json styles.css "release/${PACKAGE_DIR}/"
+          cd release
+          zip -r "../${ZIP_NAME}" "${PACKAGE_DIR}"
+
+      - name: Publish GitHub release
+        if: steps.release_meta.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.release_tag }}
+          name: ${{ steps.release_meta.outputs.release_tag }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.release_meta.outputs.zip_name }}
+            main.js
+            manifest.json
+            styles.css
